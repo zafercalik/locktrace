@@ -1,3 +1,5 @@
+require "fileutils"
+
 default_platform(:ios)
 
 platform :ios do
@@ -29,7 +31,13 @@ platform :ios do
     profile_path = ENV.fetch("IOS_PROVISIONING_PROFILE_PATH")
     install_provisioning_profile(path: profile_path)
 
-    profile_name = ENV.fetch("IOS_PROVISIONING_PROFILE_NAME", "Dist_BreakLock_2025")
+    # Read the real profile Name from the .mobileprovision (do not hardcode).
+    profile_plist_path = File.join(Dir.pwd, "signing", "profile.plist")
+    FileUtils.mkdir_p(File.dirname(profile_plist_path))
+    sh("security cms -D -i '#{profile_path}' -o '#{profile_plist_path}'")
+    profile_name = sh("/usr/libexec/PlistBuddy -c 'Print :Name' '#{profile_plist_path}'").to_s.strip
+    profile_uuid = sh("/usr/libexec/PlistBuddy -c 'Print :UUID' '#{profile_plist_path}'").to_s.strip
+    UI.message("Using provisioning profile '#{profile_name}' (#{profile_uuid})")
 
     update_code_signing_settings(
       use_automatic_signing: false,
@@ -41,6 +49,22 @@ platform :ios do
       profile_name: profile_name,
       bundle_identifier: "zetbilisim.BreakLock"
     )
+
+    update_project_provisioning(
+      xcodeproj: "BreakLock2.xcodeproj",
+      profile: profile_path,
+      target_filter: "^BreakLock2$",
+      build_configuration: "Release",
+      code_signing_identity: "iPhone Distribution"
+    )
+
+    # Clear sdk-specific hardcoded specifier so Xcode uses the installed profile name.
+    project_pbxproj = File.read("BreakLock2.xcodeproj/project.pbxproj")
+    project_pbxproj.gsub!(
+      /"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]" = [^;]+;/,
+      "\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"#{profile_name}\";"
+    )
+    File.write("BreakLock2.xcodeproj/project.pbxproj", project_pbxproj)
 
     build_number = (
       latest_testflight_build_number(
