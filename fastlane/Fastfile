@@ -7,6 +7,8 @@ platform :ios do
   lane :beta do
     setup_ci if ENV["CI"]
 
+    project_root = File.expand_path("..", __dir__)
+
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
@@ -19,8 +21,9 @@ platform :ios do
     keychain_password = ENV.fetch("MATCH_KEYCHAIN_PASSWORD", "")
 
     if ENV["IOS_DIST_CERTIFICATE_P12_PATH"]
+      cert_path = File.expand_path(ENV["IOS_DIST_CERTIFICATE_P12_PATH"], project_root)
       import_certificate(
-        certificate_path: ENV["IOS_DIST_CERTIFICATE_P12_PATH"],
+        certificate_path: cert_path,
         certificate_password: ENV.fetch("IOS_DIST_CERTIFICATE_PASSWORD"),
         keychain_name: keychain_name,
         keychain_password: keychain_password,
@@ -28,11 +31,12 @@ platform :ios do
       )
     end
 
-    profile_path = ENV.fetch("IOS_PROVISIONING_PROFILE_PATH")
+    profile_path = File.expand_path(ENV.fetch("IOS_PROVISIONING_PROFILE_PATH"), project_root)
+    UI.user_error!("Provisioning profile not found at #{profile_path}") unless File.exist?(profile_path)
     install_provisioning_profile(path: profile_path)
 
     # Read the real profile Name from the .mobileprovision (do not hardcode).
-    profile_plist_path = File.join(Dir.pwd, "signing", "profile.plist")
+    profile_plist_path = File.join(project_root, "signing", "profile.plist")
     FileUtils.mkdir_p(File.dirname(profile_plist_path))
     sh("security cms -D -i '#{profile_path}' -o '#{profile_plist_path}'")
     profile_name = sh("/usr/libexec/PlistBuddy -c 'Print :Name' '#{profile_plist_path}'").to_s.strip
@@ -41,7 +45,7 @@ platform :ios do
 
     update_code_signing_settings(
       use_automatic_signing: false,
-      path: "BreakLock2.xcodeproj",
+      path: File.join(project_root, "BreakLock2.xcodeproj"),
       team_id: "3GH7A9N6BH",
       targets: ["BreakLock2"],
       build_configurations: ["Release"],
@@ -51,7 +55,7 @@ platform :ios do
     )
 
     update_project_provisioning(
-      xcodeproj: "BreakLock2.xcodeproj",
+      xcodeproj: File.join(project_root, "BreakLock2.xcodeproj"),
       profile: profile_path,
       target_filter: "^BreakLock2$",
       build_configuration: "Release",
@@ -59,12 +63,13 @@ platform :ios do
     )
 
     # Clear sdk-specific hardcoded specifier so Xcode uses the installed profile name.
-    project_pbxproj = File.read("BreakLock2.xcodeproj/project.pbxproj")
+    pbxproj_path = File.join(project_root, "BreakLock2.xcodeproj", "project.pbxproj")
+    project_pbxproj = File.read(pbxproj_path)
     project_pbxproj.gsub!(
       /"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]" = [^;]+;/,
       "\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"#{profile_name}\";"
     )
-    File.write("BreakLock2.xcodeproj/project.pbxproj", project_pbxproj)
+    File.write(pbxproj_path, project_pbxproj)
 
     build_number = (
       latest_testflight_build_number(
@@ -76,16 +81,16 @@ platform :ios do
 
     increment_build_number(
       build_number: build_number,
-      xcodeproj: "BreakLock2.xcodeproj"
+      xcodeproj: File.join(project_root, "BreakLock2.xcodeproj")
     )
 
     build_app(
-      project: "BreakLock2.xcodeproj",
+      project: File.join(project_root, "BreakLock2.xcodeproj"),
       scheme: "BreakLock2",
       configuration: "Release",
       clean: true,
       export_method: "app-store",
-      output_directory: "build",
+      output_directory: File.join(project_root, "build"),
       output_name: "BreakLock2",
       export_options: {
         method: "app-store",
