@@ -1,0 +1,85 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build signed IPA and upload to TestFlight (manual signing)"
+  lane :beta do
+    setup_ci if ENV["CI"]
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_P8"),
+      duration: 1200,
+      in_house: false
+    )
+
+    keychain_name = ENV.fetch("MATCH_KEYCHAIN_NAME", "fastlane_tmp_keychain")
+    keychain_password = ENV.fetch("MATCH_KEYCHAIN_PASSWORD", "")
+
+    if ENV["IOS_DIST_CERTIFICATE_P12_PATH"]
+      import_certificate(
+        certificate_path: ENV["IOS_DIST_CERTIFICATE_P12_PATH"],
+        certificate_password: ENV.fetch("IOS_DIST_CERTIFICATE_PASSWORD"),
+        keychain_name: keychain_name,
+        keychain_password: keychain_password,
+        log_output: true
+      )
+    end
+
+    profile_path = ENV.fetch("IOS_PROVISIONING_PROFILE_PATH")
+    install_provisioning_profile(path: profile_path)
+
+    profile_name = ENV.fetch("IOS_PROVISIONING_PROFILE_NAME", "Dist_BreakLock_2025")
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "BreakLock2.xcodeproj",
+      team_id: "3GH7A9N6BH",
+      targets: ["BreakLock2"],
+      build_configurations: ["Release"],
+      code_sign_identity: "iPhone Distribution",
+      profile_name: profile_name,
+      bundle_identifier: "zetbilisim.BreakLock"
+    )
+
+    build_number = (
+      latest_testflight_build_number(
+        api_key: api_key,
+        app_identifier: "zetbilisim.BreakLock",
+        initial_build_number: 1
+      ) + 1
+    ).to_s
+
+    increment_build_number(
+      build_number: build_number,
+      xcodeproj: "BreakLock2.xcodeproj"
+    )
+
+    build_app(
+      project: "BreakLock2.xcodeproj",
+      scheme: "BreakLock2",
+      configuration: "Release",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "BreakLock2",
+      export_options: {
+        method: "app-store",
+        signingStyle: "manual",
+        teamID: "3GH7A9N6BH",
+        provisioningProfiles: {
+          "zetbilisim.BreakLock" => profile_name
+        }
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: "zetbilisim.BreakLock",
+      apple_id: "6748566579",
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      notify_external_testers: false
+    )
+  end
+end
