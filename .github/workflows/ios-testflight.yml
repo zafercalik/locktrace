@@ -23,15 +23,24 @@ jobs:
       - name: Select Xcode
         run: |
           set -euo pipefail
-          for app in /Applications/Xcode_26*.app /Applications/Xcode.app; do
-            if [ -d "$app" ]; then
-              sudo xcode-select -s "$app"
-              break
+          # Prefer the default Xcode.app (has iOS platform installed).
+          # Avoid bare Xcode_26.0*.app which may lack the iOS runtime/SDK components.
+          if [ -d /Applications/Xcode.app ]; then
+            sudo xcode-select -s /Applications/Xcode.app
+          else
+            latest="$(ls -1d /Applications/Xcode_26.*.app 2>/dev/null | sort -V | tail -1 || true)"
+            if [ -n "${latest:-}" ]; then
+              sudo xcode-select -s "$latest"
+            else
+              echo "No suitable Xcode 26 installation found" >&2
+              exit 1
             fi
-          done
+          fi
+          xcodebuild -version
+          xcodebuild -showsdks
 
       - name: Show Xcode version
-        run: xcodebuild -version
+        run: xcodebuild -version && xcrun --sdk iphoneos --show-sdk-version
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
