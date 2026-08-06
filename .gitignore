@@ -23,6 +23,3 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output/
 fastlane/README.md
-
-# Ruby
-Gemfile.lock

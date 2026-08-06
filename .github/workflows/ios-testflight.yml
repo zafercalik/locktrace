@@ -53,7 +53,6 @@ jobs:
           IOS_DIST_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
           IOS_DIST_CERTIFICATE_P12_PATH: signing/dist.p12
           IOS_PROVISIONING_PROFILE_PATH: signing/Dist_BreakLock.mobileprovision
-          IOS_PROVISIONING_PROFILE_NAME: Dist_BreakLock_2025
         run: bundle exec fastlane beta
 
       - name: Upload IPA artifact
