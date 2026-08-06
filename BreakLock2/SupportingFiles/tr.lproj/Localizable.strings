@@ -1,0 +1,39 @@
+/* 
+  Localizable.strings
+  BreakLock2
+
+  Created by Zafer Calik on 12.07.2025.
+  
+*/
+
+"total_attempt" = "Toplam Deneme: ";
+"appname" = "Lock Trace";
+"game_rules" = "Oyun Kuralları";
+
+"game_description" = "
+LockTrace oyununa hoş geldiniz!
+
+Amacınız, her biri 9 noktadan oluşan bir ızgarada gizli bir kombinasyonu bulmaktır.
+
+Nasıl Oynanır:
+1.  Gizli kombinasyon, 9 noktadan herhangi 4'ünün birleştirilmesiyle oluşur.
+
+2.  Kombinasyonu tahmin etmek için 4 noktayı sırayla çizin.
+
+3.  Çizdiğiniz yol bittiğinde, size geri bildirim verilecektir:
+    - Beyaz küçük daireler: Doğru noktayı doğru sırada tahmin ettiniz.
+    - Beyaz içi boş daireler: Doğru noktayı yanlış sırada tahmin ettiniz.
+
+İpuçları:
+- Çizdiğiniz noktaların sırası önemlidir.
+- Bir noktayı iki kez kullanamazsınız.
+- Sadece 3 deneme hakkınız var!
+
+İyi Şanslar!
+";
+
+"play" = "OYNA";
+"congratulations" = "Tebrikler!";
+"play_again" = "Tekrar Oyna";
+"game_over" = "Oyun Bitti!";
+"game_over_detail" = "Oyun Bitti! Deneme haklarınız tükendi.";
