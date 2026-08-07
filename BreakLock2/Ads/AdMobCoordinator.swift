@@ -17,8 +17,8 @@ final class AdMobCoordinator: NSObject, ObservableObject {
         super.init()
     }
 
-    func start() {
-        MobileAds.shared.start(completionHandler: nil)
+    /// Called after `MobileAds.shared.start` from AppDelegate.
+    func prepareAfterSDKStart() {
         requestTrackingIfNeeded()
         loadRewardedAd()
     }
