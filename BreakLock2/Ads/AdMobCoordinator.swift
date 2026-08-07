@@ -7,6 +7,8 @@ import UIKit
 final class AdMobCoordinator: NSObject, ObservableObject {
     static let shared = AdMobCoordinator()
 
+    /// Becomes true only after ATT flow finishes (or is already decided).
+    @Published private(set) var canLoadAds = false
     @Published private(set) var isRewardedReady = false
     @Published private(set) var isShowingRewarded = false
     @Published private(set) var isLoadingRewarded = false
@@ -14,24 +16,24 @@ final class AdMobCoordinator: NSObject, ObservableObject {
     private var rewardedAd: RewardedAd?
     private var rewardCompletion: ((Bool) -> Void)?
     private var isLoadInFlight = false
-    private var loadWaitContinuations: [CheckedContinuation<Bool, Never>] = []
 
     private override init() {
         super.init()
     }
 
     /// Called after `MobileAds.shared.start` from AppDelegate.
+    /// Google docs: wait for ATT completion before loading ads.
     func prepareAfterSDKStart() {
         if AdMobConfig.useTestAds {
             print("AdMob: using Google SAMPLE ad unit IDs (test mode)")
         } else {
             print("AdMob: using PRODUCTION ad unit IDs")
         }
-        requestTrackingIfNeeded()
-        loadRewardedAd()
+        requestTrackingThenLoadAds()
     }
 
     func loadRewardedAd() {
+        guard canLoadAds else { return }
         guard !isLoadInFlight else { return }
         isLoadInFlight = true
         isLoadingRewarded = true
@@ -47,8 +49,6 @@ final class AdMobCoordinator: NSObject, ObservableObject {
                     print("AdMob: rewarded load failed: \(error.localizedDescription)")
                     self.rewardedAd = nil
                     self.isRewardedReady = false
-                    self.finishLoadWaiters(success: false)
-                    // Retry shortly; new accounts / network blips are common.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         self.loadRewardedAd()
                     }
@@ -59,7 +59,6 @@ final class AdMobCoordinator: NSObject, ObservableObject {
                 self.rewardedAd = ad
                 self.rewardedAd?.fullScreenContentDelegate = self
                 self.isRewardedReady = ad != nil
-                self.finishLoadWaiters(success: ad != nil)
             }
         }
     }
@@ -91,41 +90,49 @@ final class AdMobCoordinator: NSObject, ObservableObject {
         }
     }
 
-    private func ensureRewardedReady(timeoutSeconds: TimeInterval) async -> Bool {
-        if rewardedAd != nil { return true }
+    private func requestTrackingThenLoadAds() {
+        // Small delay so the ATT dialog is not buried under launch UI.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            guard let self else { return }
 
-        loadRewardedAd()
-
-        return await withCheckedContinuation { continuation in
-            loadWaitContinuations.append(continuation)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + timeoutSeconds) { [weak self] in
-                guard let self else { return }
-                // If still waiting after timeout, fail this waiter only.
-                if let index = self.loadWaitContinuations.firstIndex(where: { ObjectIdentifier($0) == ObjectIdentifier(continuation) }) {
-                    // CheckedContinuation isn't Equatable; close all waiters if still pending after timeout when not ready.
-                }
-                if self.rewardedAd == nil && !self.loadWaitContinuations.isEmpty {
-                    self.finishLoadWaiters(success: false)
-                }
-            }
-        }
-    }
-
-    private func finishLoadWaiters(success: Bool) {
-        let waiters = loadWaitContinuations
-        loadWaitContinuations.removeAll()
-        waiters.forEach { $0.resume(returning: success) }
-    }
-
-    private func requestTrackingIfNeeded() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
                 ATTrackingManager.requestTrackingAuthorization { status in
                     print("AdMob: ATT status \(status.rawValue)")
+                    Task { @MainActor in
+                        self.markReadyAndLoadAds()
+                    }
                 }
+            } else {
+                print("AdMob: ATT already decided \(ATTrackingManager.trackingAuthorizationStatus.rawValue)")
+                self.markReadyAndLoadAds()
             }
         }
+    }
+
+    private func markReadyAndLoadAds() {
+        canLoadAds = true
+        loadRewardedAd()
+    }
+
+    private func ensureRewardedReady(timeoutSeconds: TimeInterval) async -> Bool {
+        if rewardedAd != nil { return true }
+
+        if !canLoadAds {
+            // Wait briefly for ATT flow to finish.
+            let attDeadline = Date().addingTimeInterval(min(timeoutSeconds, 8))
+            while Date() < attDeadline, !canLoadAds {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+        }
+
+        loadRewardedAd()
+
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while Date() < deadline {
+            if rewardedAd != nil { return true }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        return rewardedAd != nil
     }
 }
 
