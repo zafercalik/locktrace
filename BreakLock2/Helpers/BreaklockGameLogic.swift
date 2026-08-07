@@ -3,11 +3,11 @@ import Foundation
 class BreaklockGameLogic: ObservableObject {
     @Published var secretCombination: [Int] = []
     @Published var attemptsMade: Int = 0
-    @Published private(set) var maxAttempts: Int = 30
+    @Published private(set) var maxAttempts: Int = 15
 
     let numberOfDotsInCombination: Int
     let totalNumberOfDots: Int
-    private let baseMaxAttempts: Int = 30
+    private let baseMaxAttempts: Int = 15
 
     init(numberOfDotsInCombination: Int, totalNumberOfDots: Int) {
         self.numberOfDotsInCombination = numberOfDotsInCombination
