@@ -10,6 +10,7 @@ struct GuessHistory: Identifiable {
 
 struct BreaklockView: View {
     @StateObject private var gameLogic: BreaklockGameLogic
+    @EnvironmentObject private var ads: AdMobCoordinator
     
     @State private var selectedDotIndices: [Int] = []
     @State private var fixedPathSegments: [CGPoint] = []
@@ -18,6 +19,7 @@ struct BreaklockView: View {
     @State private var gameResult: String?
     @State private var showResultAlert: Bool = false
     @State private var gameWon: Bool = false
+    @State private var showAdNotReadyAlert: Bool = false
     
     @State private var guessHistory: [GuessHistory] = []
     
@@ -201,9 +203,14 @@ struct BreaklockView: View {
                         }
                     }
                 }
-                .padding(.bottom, 20)
+                .padding(.bottom, 8)
                 
-                Spacer()
+                Spacer(minLength: 0)
+
+                BannerAdView(adUnitID: AdMobConfig.bannerAdUnitID)
+                    .frame(width: 320, height: 50)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 8)
 
             }
             .gesture(dragGesture)
@@ -211,15 +218,52 @@ struct BreaklockView: View {
 
         }
         .alert(isPresented: $showResultAlert) {
-            Alert(
-                title: Text(gameWon ? NSLocalizedString("congratulations", comment: "") : NSLocalizedString("game_over", comment: "")),
-                message: Text(gameResult ?? ""),
-                dismissButton: .default(Text(NSLocalizedString("play_again", comment: ""))) {
-                    startGame()
-                }
-            )
+            if gameWon {
+                Alert(
+                    title: Text(NSLocalizedString("congratulations", comment: "")),
+                    message: Text(gameResult ?? ""),
+                    dismissButton: .default(Text(NSLocalizedString("play_again", comment: ""))) {
+                        startGame()
+                    }
+                )
+            } else {
+                Alert(
+                    title: Text(NSLocalizedString("game_over", comment: "")),
+                    message: Text(gameResult ?? ""),
+                    primaryButton: .default(Text(NSLocalizedString("watch_ad_for_attempts", comment: ""))) {
+                        watchAdForExtraAttempts()
+                    },
+                    secondaryButton: .cancel(Text(NSLocalizedString("play_again", comment: ""))) {
+                        startGame()
+                    }
+                )
+            }
+        }
+        .alert(NSLocalizedString("game_over", comment: ""), isPresented: $showAdNotReadyAlert) {
+            Button(NSLocalizedString("play_again", comment: ""), role: .cancel) {
+                startGame()
+            }
+            Button(NSLocalizedString("watch_ad_for_attempts", comment: "")) {
+                watchAdForExtraAttempts()
+            }
+        } message: {
+            Text(NSLocalizedString("ad_not_ready", comment: ""))
         }
         .navigationBarHidden(true)
+    }
+
+    private func watchAdForExtraAttempts() {
+        ads.showRewardedAd { earned in
+            if earned {
+                gameLogic.grantBonusAttempts()
+                gameResult = nil
+                showResultAlert = false
+                gameWon = false
+                resetGuess()
+            } else {
+                showAdNotReadyAlert = true
+            }
+        }
     }
 
     @State private var scrollID: UUID? = nil
@@ -366,5 +410,6 @@ func CGPointDistance(from: CGPoint, to: CGPoint) -> CGFloat {
 struct BreaklockView_Previews: PreviewProvider {
     static var previews: some View {
         BreaklockView()
+            .environmentObject(AdMobCoordinator.shared)
     }
 }

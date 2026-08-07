@@ -35,3 +35,6 @@ Good luck!
 "play_again" = "Play Again";
 "game_over" = "Game Over!";
 "game_over_detail" = "Game Over! You've run out of trials.";
+"watch_ad_for_attempts" = "Watch Ad (+5 Attempts)";
+"ad_not_ready" = "The ad is not ready yet. Please try again.";
+"extra_attempts_granted" = "You got 5 extra attempts. Keep going!";

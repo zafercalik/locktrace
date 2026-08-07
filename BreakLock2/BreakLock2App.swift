@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct BreakLock2App: App {
+    init() {
+        AdMobCoordinator.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(AdMobCoordinator.shared)
         }
     }
 }
