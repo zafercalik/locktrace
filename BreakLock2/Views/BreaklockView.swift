@@ -387,9 +387,10 @@ struct BreaklockView: View {
         resetGuess()
         gameResult = nil
         showResultAlert = false
+        showAdNotReadyAlert = false
         gameWon = false
+        shouldStopDrawingPath = false
         guessHistory.removeAll()
-        guessCount = 1 // YENİ: Oyun başladığında deneme sayısını sıfırla
     }
 }
 
