@@ -106,7 +106,10 @@ platform :ios do
       api_key: api_key,
       app_identifier: "zetbilisim.BreakLock",
       apple_id: "6748566579",
-      skip_waiting_for_build_processing: true,
+      # Declares export compliance via ASC API ("No" to non-exempt encryption).
+      uses_non_exempt_encryption: false,
+      # Wait until Apple finishes processing so the build becomes Ready to Test.
+      skip_waiting_for_build_processing: false,
       distribute_external: false,
       notify_external_testers: false
     )
