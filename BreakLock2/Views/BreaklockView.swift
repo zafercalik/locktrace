@@ -38,9 +38,6 @@ struct BreaklockView: View {
 
     @State private var shouldStopDrawingPath: Bool = false
 
-    // YENİ: Deneme sayısını tutmak için değişken
-    @State private var guessCount: Int = 0
-
     init() {
         _gameLogic = StateObject(wrappedValue: BreaklockGameLogic(numberOfDotsInCombination: 4, totalNumberOfDots: 9))
     }
@@ -132,13 +129,16 @@ struct BreaklockView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                // YENİ: Deneme Sayısı Metni
+                // Deneme sayacı: gameLogic.attemptsMade ile senkron (ayrı guessCount kullanılmaz)
                 HStack{
-                    Text(NSLocalizedString("total_attempt", comment: "") + "\(guessCount)")
-                        .font(.system(.title2, design: .monospaced)) // Monospaced tasarımı korur
-                        .fontWeight(.bold) // Kalınlık verir
+                    Text(
+                        NSLocalizedString("total_attempt", comment: "")
+                        + "\(gameLogic.attemptsMade)/\(gameLogic.maxAttempts)"
+                    )
+                        .font(.system(.title2, design: .monospaced))
+                        .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .padding(.top, 10) // Izgara ile deneme sayısı arasına boşluk
+                        .padding(.top, 10)
                     
                     Spacer()
                 }
@@ -255,10 +255,13 @@ struct BreaklockView: View {
     private func watchAdForExtraAttempts() {
         ads.showRewardedAd { earned in
             if earned {
+                // Keep attemptsMade as-is (e.g. 15/15 -> 15/20) and continue from next try.
                 gameLogic.grantBonusAttempts()
                 gameResult = nil
                 showResultAlert = false
+                showAdNotReadyAlert = false
                 gameWon = false
+                shouldStopDrawingPath = false
                 resetGuess()
             } else {
                 showAdNotReadyAlert = true
@@ -325,8 +328,6 @@ struct BreaklockView: View {
                                         gameResult = gameWon ? NSLocalizedString("congratulations", comment: "") : NSLocalizedString("game_over_detail", comment: "")
                                         showResultAlert = true
                                     } else {
-                                        // YENİ: Oyun bitmediyse deneme sayısını artır
-                                        guessCount += 1
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                             if !showResultAlert {
                                                 resetGuess()
@@ -386,9 +387,10 @@ struct BreaklockView: View {
         resetGuess()
         gameResult = nil
         showResultAlert = false
+        showAdNotReadyAlert = false
         gameWon = false
+        shouldStopDrawingPath = false
         guessHistory.removeAll()
-        guessCount = 1 // YENİ: Oyun başladığında deneme sayısını sıfırla
     }
 }
 
