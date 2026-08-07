@@ -4,9 +4,9 @@ enum AdMobConfig {
     /// AdMob App ID (also set in BreakLock2-Info.plist).
     static let appID = "ca-app-pub-3023673137817649~6618693867"
 
-    /// Set to `false` when you want live production ads.
-    /// Google sample units are used while this is `true` so TestFlight/device testing always has fill.
-    static let useTestAds = true
+    /// Set to `true` only while verifying integration with Google sample units.
+    /// `false` uses your real AdMob units (register the device as a test device in AdMob UI).
+    static let useTestAds = false
 
     /// Production banner unit.
     private static let productionBannerAdUnitID = "ca-app-pub-3023673137817649/2292436041"
