@@ -38,5 +38,6 @@ Nasıl Oynanır:
 "game_over" = "Oyun Bitti!";
 "game_over_detail" = "Oyun Bitti! Deneme haklarınız tükendi.";
 "watch_ad_for_attempts" = "Reklam İzle (+5 Deneme)";
-"ad_not_ready" = "Reklam şu an hazır değil. Lütfen tekrar deneyin.";
+"ad_not_ready" = "Reklam şu an yüklenemedi. Birkaç saniye bekleyip tekrar deneyin.";
 "extra_attempts_granted" = "5 ek deneme hakkınız tanımlandı. Devam edin!";
+"loading_ad" = "Reklam yükleniyor...";

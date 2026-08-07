@@ -1,14 +1,32 @@
 import Foundation
 
 enum AdMobConfig {
-    /// AdMob App ID (also set in Info.plist via build settings).
+    /// AdMob App ID (also set in BreakLock2-Info.plist).
     static let appID = "ca-app-pub-3023673137817649~6618693867"
 
+    /// Set to `false` when you want live production ads.
+    /// Google sample units are used while this is `true` so TestFlight/device testing always has fill.
+    static let useTestAds = true
+
     /// Production banner unit.
-    static let bannerAdUnitID = "ca-app-pub-3023673137817649/2292436041"
+    private static let productionBannerAdUnitID = "ca-app-pub-3023673137817649/2292436041"
 
     /// Production rewarded unit.
-    static let rewardedAdUnitID = "ca-app-pub-3023673137817649/2143041042"
+    private static let productionRewardedAdUnitID = "ca-app-pub-3023673137817649/2143041042"
+
+    /// Google official sample banner unit.
+    private static let testBannerAdUnitID = "ca-app-pub-3940256099942544/2934735716"
+
+    /// Google official sample rewarded unit.
+    private static let testRewardedAdUnitID = "ca-app-pub-3940256099942544/1712485313"
+
+    static var bannerAdUnitID: String {
+        useTestAds ? testBannerAdUnitID : productionBannerAdUnitID
+    }
+
+    static var rewardedAdUnitID: String {
+        useTestAds ? testRewardedAdUnitID : productionRewardedAdUnitID
+    }
 
     /// Extra attempts granted after a completed rewarded ad.
     static let bonusAttemptsPerReward = 5
